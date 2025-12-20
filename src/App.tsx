@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import ResumeEditor from './components/ResumeEditor';
 import ResumePreview from './components/ResumePreview';
 import type { ResumeData, Theme, FontSize } from './types';
@@ -40,6 +40,8 @@ const fontSizeOptions: { id: FontSize; label: string }[] = [
   { id: 'medium', label: '中' },
   { id: 'large', label: '大' },
 ];
+
+const STORAGE_KEY = 'resume-web-data-v1';
 
 const initialData: ResumeData = {
   profile: {
@@ -94,12 +96,83 @@ const initialData: ResumeData = {
   ]
 };
 
+function loadInitialResumeData(): ResumeData {
+  if (typeof window === 'undefined') return initialData;
+  const raw = window.localStorage.getItem(STORAGE_KEY);
+  if (!raw) return initialData;
+  try {
+    const parsed = JSON.parse(raw) as ResumeData;
+    if (!parsed || !parsed.profile || !parsed.experience || !parsed.skills || !parsed.projects || !parsed.education) {
+      return initialData;
+    }
+    return parsed;
+  } catch {
+    return initialData;
+  }
+}
+
 function App() {
-  const [resumeData, setResumeData] = useState<ResumeData>(initialData);
+  const [resumeData, setResumeData] = useState<ResumeData>(() => loadInitialResumeData());
   const [isPreview, setIsPreview] = useState(false);
   const [theme, setTheme] = useState<Theme>('blue');
   const themeConfig = themeConfigs[theme];
   const [fontSize, setFontSize] = useState<FontSize>('medium');
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(resumeData));
+    } catch {
+      /* ignore */
+    }
+  }, [resumeData]);
+
+  const handleExportJson = () => {
+    if (typeof window === 'undefined') return;
+    const blob = new Blob([JSON.stringify(resumeData, null, 2)], {
+      type: 'application/json;charset=utf-8',
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const date = new Date();
+    const timestamp = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(
+      date.getDate(),
+    ).padStart(2, '0')}`;
+    link.href = url;
+    link.download = `resume-${timestamp}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleImportJson = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const text = reader.result;
+        if (typeof text !== 'string') return;
+        const parsed = JSON.parse(text) as ResumeData;
+        if (!parsed || !parsed.profile || !parsed.experience || !parsed.skills || !parsed.projects || !parsed.education) {
+          return;
+        }
+        setResumeData(parsed);
+      } catch {
+        /* ignore invalid file */
+      }
+    };
+    reader.readAsText(file, 'utf-8');
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col h-screen print:block">
@@ -146,8 +219,31 @@ function App() {
                  </div>
                </div>
              </div>
-             <div className="flex gap-3">
-               <button 
+             <div className="flex gap-3 items-center">
+               <div className="flex gap-2">
+                 <button
+                   type="button"
+                   onClick={handleExportJson}
+                   className="px-3 py-1.5 text-xs border border-gray-200 rounded-md text-gray-600 hover:bg-gray-100"
+                 >
+                   导出 JSON
+                 </button>
+                 <button
+                   type="button"
+                   onClick={handleImportClick}
+                   className="px-3 py-1.5 text-xs border border-gray-200 rounded-md text-gray-600 hover:bg-gray-100"
+                 >
+                   导入 JSON
+                 </button>
+                 <input
+                   ref={fileInputRef}
+                   type="file"
+                   accept="application/json,.json"
+                   className="hidden"
+                   onChange={handleImportJson}
+                 />
+               </div>
+              <button 
                    onClick={() => setIsPreview(!isPreview)}
                    className="flex items-center gap-2 px-4 py-2 rounded-md transition-colors text-gray-600 hover:bg-gray-100 border border-gray-200"
                >

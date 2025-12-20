@@ -25,7 +25,6 @@ const formats = [
 export default function RichTextEditor({ value, onChange, placeholder, className }: Props) {
   return (
     <div className={`rich-text-editor ${className || ''}`}>
-      {/* @ts-expect-error ReactQuill type mismatch */}
       <ReactQuill 
         theme="snow"
         value={value}
