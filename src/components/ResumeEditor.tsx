@@ -7,30 +7,35 @@ interface Props {
   onChange: (data: ResumeData) => void;
 }
 
+type ExperienceItem = ResumeData['experience'][number];
+type ProjectItem = ResumeData['projects'][number];
+
 // Helper for generating IDs
 const generateId = () => Date.now().toString() + Math.random().toString().slice(2);
 
 export default function ResumeEditor({ data, onChange }: Props) {
-  const handleChange = (section: keyof ResumeData, value: any) => {
+  const handleChange = <K extends keyof ResumeData>(section: K, value: ResumeData[K]) => {
     onChange({ ...data, [section]: value });
   };
 
-  const handleProfileChange = (field: string, value: string) => {
+  const handleProfileChange = (field: keyof ResumeData['profile'], value: string) => {
+    if (data.profile[field] === value) return;
     onChange({
       ...data,
       profile: { ...data.profile, [field]: value }
     });
   };
 
-  // --- Skills Logic ---
   const addSkillGroup = () => {
     const newSkills = [...data.skills, { id: generateId(), name: '新技能分类', content: '' }];
     handleChange('skills', newSkills);
   };
 
-  const updateSkillGroup = (index: number, field: keyof SkillGroup, value: any) => {
+  const updateSkillGroup = (index: number, field: keyof SkillGroup, value: string) => {
+    const current = data.skills[index];
+    if (!current || current[field] === value) return;
     const newSkills = [...data.skills];
-    newSkills[index] = { ...newSkills[index], [field]: value };
+    newSkills[index] = { ...current, [field]: value };
     handleChange('skills', newSkills);
   };
 
@@ -47,7 +52,6 @@ export default function ResumeEditor({ data, onChange }: Props) {
     handleChange('skills', newSkills);
   };
 
-  // --- Experience Logic ---
   const addExperience = () => {
     handleChange('experience', [
       { id: generateId(), company: '新公司', title: '职位', date: '2024/01 - 至今', location: '', details: '' },
@@ -55,7 +59,9 @@ export default function ResumeEditor({ data, onChange }: Props) {
     ]);
   };
 
-  const updateExperience = (index: number, field: string, value: any) => {
+  const updateExperience = (index: number, field: keyof ExperienceItem, value: string) => {
+    const current = data.experience[index];
+    if (!current || current[field] === value) return;
     const newExp = [...data.experience];
     newExp[index] = { ...newExp[index], [field]: value };
     handleChange('experience', newExp);
@@ -74,10 +80,7 @@ export default function ResumeEditor({ data, onChange }: Props) {
   };
 
   const sortExperience = () => {
-     // Sort by date (descending) - simple string comparison for now, or parsing
-     // Assuming format "YYYY/MM" or similar.
      const newExp = [...data.experience].sort((a, b) => {
-        // Extract start year/month
         const getStart = (d: string) => {
             const match = d.match(/(\d{4})[./-](\d{1,2})/);
             if (match) return parseInt(match[1]) * 100 + parseInt(match[2]);
@@ -88,15 +91,16 @@ export default function ResumeEditor({ data, onChange }: Props) {
      handleChange('experience', newExp);
   };
 
-  // --- Project Logic ---
   const addProject = () => {
     handleChange('projects', [
-      { id: generateId(), name: '新项目', role: '角色', description: '', techStack: '' },
+      { id: generateId(), name: '新项目', date: '', summary: '', role: '角色', description: '', techStack: '' },
       ...data.projects
     ]);
   };
 
-  const updateProject = (index: number, field: string, value: any) => {
+  const updateProject = (index: number, field: keyof ProjectItem, value: string) => {
+    const current = data.projects[index];
+    if (!current || current[field] === value) return;
     const newProj = [...data.projects];
     newProj[index] = { ...newProj[index], [field]: value };
     handleChange('projects', newProj);

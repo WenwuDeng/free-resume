@@ -1,19 +1,61 @@
-import type { ResumeData } from '../types';
+import type { ResumeData, Theme } from '../types';
 import { MapPin, Mail, Phone, Cake, GraduationCap } from 'lucide-react';
 
 interface Props {
   data: ResumeData;
+  theme: Theme;
 }
 
-const SectionTitle = ({ title }: { title: string }) => (
-  <div className="flex items-center bg-blue-50 mb-4">
-    <div className="w-1 h-8 bg-blue-600 mr-3"></div>
-    <h2 className="text-lg font-bold text-blue-600 tracking-wide py-1">{title}</h2>
-  </div>
-);
+const themeStyles: Record<
+  Theme,
+  {
+    sectionBg: string;
+    sectionBar: string;
+    sectionTitle: string;
+    link: string;
+    linkUnderline: string;
+    eduIcon: string;
+  }
+> = {
+  blue: {
+    sectionBg: 'bg-blue-50',
+    sectionBar: 'bg-blue-600',
+    sectionTitle: 'text-blue-600',
+    link: 'text-blue-600',
+    linkUnderline: 'decoration-blue-300',
+    eduIcon: 'text-blue-600',
+  },
+  green: {
+    sectionBg: 'bg-emerald-50',
+    sectionBar: 'bg-emerald-600',
+    sectionTitle: 'text-emerald-600',
+    link: 'text-emerald-600',
+    linkUnderline: 'decoration-emerald-300',
+    eduIcon: 'text-emerald-600',
+  },
+  purple: {
+    sectionBg: 'bg-purple-50',
+    sectionBar: 'bg-purple-600',
+    sectionTitle: 'text-purple-600',
+    link: 'text-purple-600',
+    linkUnderline: 'decoration-purple-300',
+    eduIcon: 'text-purple-600',
+  },
+};
 
-export default function ResumePreview({ data }: Props) {
+const SectionTitle = ({ title, theme }: { title: string; theme: Theme }) => {
+  const styles = themeStyles[theme];
+  return (
+    <div className={`flex items-center mb-4 ${styles.sectionBg}`}>
+      <div className={`w-1 h-8 mr-3 ${styles.sectionBar}`}></div>
+      <h2 className={`text-lg font-bold tracking-wide py-1 ${styles.sectionTitle}`}>{title}</h2>
+    </div>
+  );
+};
+
+export default function ResumePreview({ data, theme }: Props) {
   const { location, birthDate } = data.profile;
+  const styles = themeStyles[theme];
 
   return (
     <>
@@ -124,7 +166,7 @@ export default function ResumePreview({ data }: Props) {
             <span className="text-xl text-gray-700 font-medium">{data.profile.title}</span>
         </div>
         
-        <div className="flex justify-center items-center gap-6 text-sm text-gray-600 flex-wrap">
+          <div className="flex justify-center items-center gap-6 text-sm text-gray-600 flex-wrap">
           {location && (
             <div className="flex items-center gap-1">
               <MapPin size={14} />
@@ -133,7 +175,12 @@ export default function ResumePreview({ data }: Props) {
           )}
           <div className="flex items-center gap-1">
             <Mail size={14} />
-            <a href={`mailto:${data.profile.email}`} className="text-blue-600 underline decoration-blue-300">{data.profile.email}</a>
+            <a
+              href={`mailto:${data.profile.email}`}
+              className={`${styles.link} underline ${styles.linkUnderline}`}
+            >
+              {data.profile.email}
+            </a>
           </div>
           <div className="flex items-center gap-1">
             <Phone size={14} />
@@ -151,7 +198,7 @@ export default function ResumePreview({ data }: Props) {
       {/* Skills */}
         {data.skills && data.skills.length > 0 && (
           <section className="mb-4 content-section">
-              <SectionTitle title="专业技能" />
+              <SectionTitle title="专业技能" theme={theme} />
               <div className="pl-1 compact-section">
                   {data.skills.map((group) => (
                     <div key={group.id} className="mb-3 tight-spacing">
@@ -170,7 +217,7 @@ export default function ResumePreview({ data }: Props) {
 
       {/* Experience */}
         <section className="mb-4 content-section">
-          <SectionTitle title="工作经历" />
+          <SectionTitle title="工作经历" theme={theme} />
           {data.experience.map((exp, index) => (
             <div key={exp.id} className={`mb-4 ${index > 0 ? 'mt-6' : ''}`}>
               <div className="flex justify-between items-baseline mb-1 font-bold text-gray-800 tight-spacing">
@@ -198,7 +245,7 @@ export default function ResumePreview({ data }: Props) {
 
       {/* Projects */}
         <section className="mb-4 content-section">
-          <SectionTitle title="项目经历" />
+          <SectionTitle title="项目经历" theme={theme} />
           {data.projects.map((project, index) => (
             <div key={project.id} className={`mb-4 ${index > 0 ? 'mt-4' : ''}`}>
               {/* Row 1: Name and Date */}
@@ -237,11 +284,11 @@ export default function ResumePreview({ data }: Props) {
 
       {/* Education */}
         <section className="content-section">
-          <SectionTitle title="教育经历" />
+          <SectionTitle title="教育经历" theme={theme} />
           {data.education.map((edu) => (
             <div key={edu.id} className="flex justify-between items-center mb-1 text-gray-800 tight-spacing">
               <div className="flex items-center gap-1 font-bold">
-                  <GraduationCap size={16} className="text-blue-600" />
+                  <GraduationCap size={16} className={styles.eduIcon} />
                   <span className="text-sm">{edu.school}</span>
               </div>
               <div className="text-sm font-medium">{edu.degree}</div>
@@ -253,7 +300,7 @@ export default function ResumePreview({ data }: Props) {
       {/* Self Evaluation */}
         {data.profile.summary && (
           <section className="mt-4 content-section">
-            <SectionTitle title="自我评价" />
+            <SectionTitle title="自我评价" theme={theme} />
             <div 
               className="text-xs leading-5 text-gray-800 pl-1 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_p]:mb-0.5"
               dangerouslySetInnerHTML={{ __html: data.profile.summary }} 

@@ -1,3 +1,5 @@
+export type Theme = 'blue' | 'green' | 'purple';
+
 export interface SkillGroup {
   id: string;
   name: string; // Category name (e.g., "Core Skills")

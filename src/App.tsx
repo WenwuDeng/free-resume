@@ -1,8 +1,39 @@
 import { useState } from 'react';
 import ResumeEditor from './components/ResumeEditor';
 import ResumePreview from './components/ResumePreview';
-import type { ResumeData } from './types';
+import type { ResumeData, Theme } from './types';
 import { PenTool, Eye, Download } from 'lucide-react';
+
+const themeConfigs: Record<
+  Theme,
+  {
+    primaryButton: string;
+    primaryButtonHover: string;
+    themeDot: string;
+  }
+> = {
+  blue: {
+    primaryButton: 'bg-blue-600',
+    primaryButtonHover: 'hover:bg-blue-700',
+    themeDot: 'bg-blue-600',
+  },
+  green: {
+    primaryButton: 'bg-emerald-600',
+    primaryButtonHover: 'hover:bg-emerald-700',
+    themeDot: 'bg-emerald-600',
+  },
+  purple: {
+    primaryButton: 'bg-purple-600',
+    primaryButtonHover: 'hover:bg-purple-700',
+    themeDot: 'bg-purple-600',
+  },
+};
+
+const themeOptions: { id: Theme; label: string }[] = [
+  { id: 'blue', label: '蓝' },
+  { id: 'green', label: '绿' },
+  { id: 'purple', label: '紫' },
+];
 
 const initialData: ResumeData = {
   profile: {
@@ -60,12 +91,33 @@ const initialData: ResumeData = {
 function App() {
   const [resumeData, setResumeData] = useState<ResumeData>(initialData);
   const [isPreview, setIsPreview] = useState(false);
+  const [theme, setTheme] = useState<Theme>('blue');
+  const themeConfig = themeConfigs[theme];
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col h-screen print:block">
        <header className="app-header bg-white shadow-sm border-b px-6 py-3 flex justify-between items-center print:hidden z-20 shrink-0">
            <h1 className="text-xl font-bold text-gray-800">简历生成器</h1>
-           <div className="flex gap-3">
+           <div className="flex items-center gap-4">
+             <div className="flex items-center gap-2">
+               <span className="text-sm text-gray-500">主题</span>
+               <div className="flex items-center gap-2">
+                 {themeOptions.map((item) => {
+                   const isActive = item.id === theme;
+                   const dotClass = themeConfigs[item.id].themeDot;
+                   return (
+                     <button
+                       key={item.id}
+                       type="button"
+                       onClick={() => setTheme(item.id)}
+                       className={`w-5 h-5 rounded-full border border-gray-300 ${dotClass} ${isActive ? 'ring-2 ring-offset-1 ring-gray-700' : ''}`}
+                       aria-label={`切换主题为${item.label}`}
+                     />
+                   );
+                 })}
+               </div>
+             </div>
+             <div className="flex gap-3">
                <button 
                    onClick={() => setIsPreview(!isPreview)}
                    className="flex items-center gap-2 px-4 py-2 rounded-md transition-colors text-gray-600 hover:bg-gray-100 border border-gray-200"
@@ -74,10 +126,11 @@ function App() {
                </button>
                <button 
                    onClick={() => window.print()}
-                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-sm"
+                   className={`flex items-center gap-2 px-4 py-2 text-white rounded-md transition-colors shadow-sm ${themeConfig.primaryButton} ${themeConfig.primaryButtonHover}`}
                >
                    <Download size={18} /> 保存 PDF
                </button>
+             </div>
            </div>
        </header>
 
@@ -94,7 +147,7 @@ function App() {
             p-8 bg-gray-200 overflow-y-auto flex justify-center items-start print:w-full print:h-auto print:p-0 print:bg-white print:overflow-visible print:block print:static
             ${isPreview ? 'w-full' : 'w-full md:w-1/2'}
         `}>
-          <ResumePreview data={resumeData} />
+          <ResumePreview data={resumeData} theme={theme} />
         </div>
       </div>
     </div>
