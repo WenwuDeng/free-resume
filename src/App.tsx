@@ -43,10 +43,10 @@ const fontSizeOptions: { id: FontSize; label: string }[] = [
 
 const initialData: ResumeData = {
   profile: {
-    name: '邓文武',
+    name: 'xxx',
     title: '大数据开发工程师',
-    phone: '17859735572',
-    email: 'dengwwa@163.com',
+    phone: '17859xxx72',
+    email: 'xxxx@163.com',
     location: '厦门',
     birthDate: '1996/10',
     summary: '<ul><li>拥有扎实的大数据技术基础，熟悉 Hadoop, Spark, Flink 等主流计算框架。</li><li>具备海量数据处理与数仓建设经验。</li></ul>',
