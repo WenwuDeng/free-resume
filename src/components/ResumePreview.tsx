@@ -1,9 +1,11 @@
-import type { ResumeData, Theme } from '../types';
+import type { CSSProperties } from 'react';
+import type { ResumeData, Theme, FontSize } from '../types';
 import { MapPin, Mail, Phone, Cake, GraduationCap } from 'lucide-react';
 
 interface Props {
   data: ResumeData;
   theme: Theme;
+  fontSize: FontSize;
 }
 
 const themeStyles: Record<
@@ -53,9 +55,35 @@ const SectionTitle = ({ title, theme }: { title: string; theme: Theme }) => {
   );
 };
 
-export default function ResumePreview({ data, theme }: Props) {
+const fontSizeStyles: Record<
+  FontSize,
+  {
+    fontSize: string;
+    lineHeight: string;
+  }
+> = {
+  small: {
+    fontSize: '11px',
+    lineHeight: '1.35',
+  },
+  medium: {
+    fontSize: '12px',
+    lineHeight: '1.4',
+  },
+  large: {
+    fontSize: '13px',
+    lineHeight: '1.45',
+  },
+};
+
+export default function ResumePreview({ data, theme, fontSize }: Props) {
   const { location, birthDate } = data.profile;
   const styles = themeStyles[theme];
+  const size = fontSizeStyles[fontSize];
+  const rootStyle: CSSProperties = {
+    '--resume-font-size': size.fontSize,
+    '--resume-line-height': size.lineHeight,
+  } as CSSProperties;
 
   return (
     <>
@@ -154,11 +182,19 @@ export default function ResumePreview({ data, theme }: Props) {
         }
         
         .print-optimized {
-          font-size: 12px !important;
-          line-height: 1.4 !important;
+          font-size: var(--resume-font-size, 12px) !important;
+          line-height: var(--resume-line-height, 1.4) !important;
+        }
+
+        .resume-body-text {
+          font-size: var(--resume-font-size, 12px) !important;
+          line-height: var(--resume-line-height, 1.4) !important;
         }
       `}</style>
-      <div className="print-container text-gray-900 font-sans leading-relaxed w-[210mm] min-h-[297mm] h-auto mx-auto bg-white shadow-2xl p-[15mm] box-border print-optimized">
+      <div
+        className="print-container text-gray-900 font-sans leading-relaxed w-[210mm] min-h-[297mm] h-auto mx-auto bg-white shadow-2xl p-[15mm] box-border print-optimized"
+        style={rootStyle}
+      >
         {/* Header */}
         <header className="mb-8 text-center break-inside-avoid">
         <div className="mb-3">
@@ -236,7 +272,7 @@ export default function ResumePreview({ data, theme }: Props) {
               </div>
               
               <div 
-                  className="text-xs leading-5 text-gray-800 pl-3 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_p]:mb-0.5 [&_.ql-indent-1]:pl-6 [&_.ql-indent-2]:pl-10 [&_.ql-indent-3]:pl-14"
+                  className="text-xs leading-5 text-gray-800 pl-3 resume-body-text [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_p]:mb-0.5 [&_.ql-indent-1]:pl-6 [&_.ql-indent-2]:pl-10 [&_.ql-indent-3]:pl-14"
                   dangerouslySetInnerHTML={{ __html: exp.details }}
               />
             </div>
@@ -256,7 +292,7 @@ export default function ResumePreview({ data, theme }: Props) {
               
               {/* Row 2: Summary */}
               {project.summary && (
-                  <div className="mb-0.5 text-xs text-gray-800">
+                  <div className="mb-0.5 text-xs text-gray-800 resume-body-text">
                       <span className="font-bold text-gray-900">项目描述：</span>
                       <span>{project.summary}</span>
                   </div>
@@ -264,7 +300,7 @@ export default function ResumePreview({ data, theme }: Props) {
 
               {/* Row 3: Tech Stack */}
               {project.techStack && (
-                  <div className="mb-0.5 text-xs text-gray-800">
+                  <div className="mb-0.5 text-xs text-gray-800 resume-body-text">
                       <span className="font-bold text-gray-900">技术架构：</span>
                       <span>{project.techStack}</span>
                   </div>
@@ -274,7 +310,7 @@ export default function ResumePreview({ data, theme }: Props) {
               <div className="mt-0.5">
                    <div className="font-bold text-gray-900 text-xs mb-0.5">职责描述：</div>
                    <div 
-                      className="text-xs leading-5 text-gray-800 pl-3 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_p]:mb-0.5 [&_.ql-indent-1]:pl-6 [&_.ql-indent-2]:pl-10 [&_.ql-indent-3]:pl-14"
+                      className="text-xs leading-5 text-gray-800 pl-3 resume-body-text [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_p]:mb-0.5 [&_.ql-indent-1]:pl-6 [&_.ql-indent-2]:pl-10 [&_.ql-indent-3]:pl-14"
                       dangerouslySetInnerHTML={{ __html: project.description }}
                   />
               </div>
@@ -302,7 +338,7 @@ export default function ResumePreview({ data, theme }: Props) {
           <section className="mt-4 content-section">
             <SectionTitle title="自我评价" theme={theme} />
             <div 
-              className="text-xs leading-5 text-gray-800 pl-1 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_p]:mb-0.5"
+              className="text-xs leading-5 text-gray-800 pl-1 resume-body-text [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_p]:mb-0.5"
               dangerouslySetInnerHTML={{ __html: data.profile.summary }} 
             />
           </section>

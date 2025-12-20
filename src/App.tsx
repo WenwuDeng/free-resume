@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import ResumeEditor from './components/ResumeEditor';
 import ResumePreview from './components/ResumePreview';
-import type { ResumeData, Theme } from './types';
+import type { ResumeData, Theme, FontSize } from './types';
 import { PenTool, Eye, Download } from 'lucide-react';
 
 const themeConfigs: Record<
@@ -33,6 +33,12 @@ const themeOptions: { id: Theme; label: string }[] = [
   { id: 'blue', label: '蓝' },
   { id: 'green', label: '绿' },
   { id: 'purple', label: '紫' },
+];
+
+const fontSizeOptions: { id: FontSize; label: string }[] = [
+  { id: 'small', label: '小' },
+  { id: 'medium', label: '中' },
+  { id: 'large', label: '大' },
 ];
 
 const initialData: ResumeData = {
@@ -93,28 +99,51 @@ function App() {
   const [isPreview, setIsPreview] = useState(false);
   const [theme, setTheme] = useState<Theme>('blue');
   const themeConfig = themeConfigs[theme];
+  const [fontSize, setFontSize] = useState<FontSize>('medium');
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col h-screen print:block">
        <header className="app-header bg-white shadow-sm border-b px-6 py-3 flex justify-between items-center print:hidden z-20 shrink-0">
            <h1 className="text-xl font-bold text-gray-800">简历生成器</h1>
-           <div className="flex items-center gap-4">
-             <div className="flex items-center gap-2">
-               <span className="text-sm text-gray-500">主题</span>
+           <div className="flex items-center gap-6">
+             <div className="flex items-center gap-4">
                <div className="flex items-center gap-2">
-                 {themeOptions.map((item) => {
-                   const isActive = item.id === theme;
-                   const dotClass = themeConfigs[item.id].themeDot;
-                   return (
-                     <button
-                       key={item.id}
-                       type="button"
-                       onClick={() => setTheme(item.id)}
-                       className={`w-5 h-5 rounded-full border border-gray-300 ${dotClass} ${isActive ? 'ring-2 ring-offset-1 ring-gray-700' : ''}`}
-                       aria-label={`切换主题为${item.label}`}
-                     />
-                   );
-                 })}
+                 <span className="text-sm text-gray-500">主题</span>
+                 <div className="flex items-center gap-2">
+                   {themeOptions.map((item) => {
+                     const isActive = item.id === theme;
+                     const dotClass = themeConfigs[item.id].themeDot;
+                     return (
+                       <button
+                         key={item.id}
+                         type="button"
+                         onClick={() => setTheme(item.id)}
+                         className={`w-5 h-5 rounded-full border border-gray-300 ${dotClass} ${isActive ? 'ring-2 ring-offset-1 ring-gray-700' : ''}`}
+                         aria-label={`切换主题为${item.label}`}
+                       />
+                     );
+                   })}
+                 </div>
+               </div>
+               <div className="flex items-center gap-2">
+                 <span className="text-sm text-gray-500">字号</span>
+                 <div className="inline-flex rounded-md border border-gray-200 bg-gray-50">
+                   {fontSizeOptions.map((item) => {
+                     const isActive = item.id === fontSize;
+                     return (
+                       <button
+                         key={item.id}
+                         type="button"
+                         onClick={() => setFontSize(item.id)}
+                         className={`px-2 py-1 text-xs border-l border-gray-200 first:border-l-0 ${
+                           isActive ? 'bg-white text-gray-900 font-medium' : 'text-gray-500 hover:text-gray-800'
+                         }`}
+                       >
+                         {item.label}
+                       </button>
+                     );
+                   })}
+                 </div>
                </div>
              </div>
              <div className="flex gap-3">
@@ -147,7 +176,7 @@ function App() {
             p-8 bg-gray-200 overflow-y-auto flex justify-center items-start print:w-full print:h-auto print:p-0 print:bg-white print:overflow-visible print:block print:static
             ${isPreview ? 'w-full' : 'w-full md:w-1/2'}
         `}>
-          <ResumePreview data={resumeData} theme={theme} />
+          <ResumePreview data={resumeData} theme={theme} fontSize={fontSize} />
         </div>
       </div>
     </div>

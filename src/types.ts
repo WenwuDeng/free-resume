@@ -1,4 +1,5 @@
 export type Theme = 'blue' | 'green' | 'purple';
+export type FontSize = 'small' | 'medium' | 'large';
 
 export interface SkillGroup {
   id: string;
