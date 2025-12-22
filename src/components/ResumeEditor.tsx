@@ -9,8 +9,8 @@ interface Props {
 
 type ExperienceItem = ResumeData['experience'][number];
 type ProjectItem = ResumeData['projects'][number];
+type EducationItem = ResumeData['education'][number];
 
-// Helper for generating IDs
 const generateId = () => Date.now().toString() + Math.random().toString().slice(2);
 
 export default function ResumeEditor({ data, onChange }: Props) {
@@ -116,6 +116,36 @@ export default function ResumeEditor({ data, onChange }: Props) {
     const swapIndex = direction === 'up' ? index - 1 : index + 1;
     [newProj[index], newProj[swapIndex]] = [newProj[swapIndex], newProj[index]];
     handleChange('projects', newProj);
+  };
+
+  const addEducation = () => {
+    const next: EducationItem = {
+      id: generateId(),
+      school: '某某大学',
+      degree: '专业 学历',
+      date: '201x - 202x',
+    };
+    handleChange('education', [...data.education, next]);
+  };
+
+  const updateEducation = (index: number, field: keyof EducationItem, value: string) => {
+    const current = data.education[index];
+    if (!current || current[field] === value) return;
+    const next = [...data.education];
+    next[index] = { ...current, [field]: value };
+    handleChange('education', next);
+  };
+
+  const deleteEducation = (index: number) => {
+    handleChange('education', data.education.filter((_, i) => i !== index));
+  };
+
+  const moveEducation = (index: number, direction: 'up' | 'down') => {
+    if ((direction === 'up' && index === 0) || (direction === 'down' && index === data.education.length - 1)) return;
+    const next = [...data.education];
+    const swapIndex = direction === 'up' ? index - 1 : index + 1;
+    [next[index], next[swapIndex]] = [next[swapIndex], next[index]];
+    handleChange('education', next);
   };
 
   return (
@@ -252,6 +282,64 @@ export default function ResumeEditor({ data, onChange }: Props) {
                     </div>
                 </div>
             ))}
+        </div>
+      </section>
+
+      {/* Education Section */}
+      <section>
+        <div className="flex justify-between items-center mb-3 border-b pb-1">
+          <h3 className="text-lg font-semibold text-blue-600">教育经历</h3>
+          <button onClick={addEducation} className="text-blue-600 hover:bg-blue-50 p-1 rounded">
+            <Plus size={18} />
+          </button>
+        </div>
+        <div className="space-y-4">
+          {data.education.map((edu, index) => (
+            <div key={edu.id} className="bg-gray-50 p-3 rounded border">
+              <div className="flex items-center gap-2 mb-2">
+                <button
+                  onClick={() => moveEducation(index, 'up')}
+                  disabled={index === 0}
+                  className="text-gray-400 hover:text-blue-600 disabled:opacity-30"
+                >
+                  <ArrowUp size={16} />
+                </button>
+                <button
+                  onClick={() => moveEducation(index, 'down')}
+                  disabled={index === data.education.length - 1}
+                  className="text-gray-400 hover:text-blue-600 disabled:opacity-30"
+                >
+                  <ArrowDown size={16} />
+                </button>
+                <input
+                  className="flex-1 p-1 border rounded font-bold"
+                  value={edu.school}
+                  onChange={(e) => updateEducation(index, 'school', e.target.value)}
+                  placeholder="学校名称"
+                />
+                <button
+                  onClick={() => deleteEducation(index)}
+                  className="text-red-400 hover:text-red-600"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  className="flex-1 p-1 border rounded text-sm"
+                  value={edu.degree}
+                  onChange={(e) => updateEducation(index, 'degree', e.target.value)}
+                  placeholder="专业与学历"
+                />
+                <input
+                  className="w-1/3 p-1 border rounded text-sm"
+                  value={edu.date}
+                  onChange={(e) => updateEducation(index, 'date', e.target.value)}
+                  placeholder="时间"
+                />
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 

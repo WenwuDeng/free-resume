@@ -302,7 +302,7 @@ export default function ResumePreview({ data, theme, fontSize }: Props) {
               {project.techStack && (
                   <div className="mb-0.5 text-xs text-gray-800 resume-body-text">
                       <span className="font-bold text-gray-900">技术架构：</span>
-                      <span>{project.techStack}</span>
+                      <span className="font-bold text-gray-900">{project.techStack}</span>
                   </div>
               )}
 
