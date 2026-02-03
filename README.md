@@ -45,7 +45,7 @@ free-resume 是一个纯前端的简历生成器用于快速编写、预览并�
 
 1. 安装依赖
 ```bash
-cd resume-web
+cd free-resume
 npm install
 ```
 
