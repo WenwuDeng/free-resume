@@ -1,5 +1,6 @@
 export type Theme = 'blue' | 'green' | 'purple';
 export type FontSize = 'small' | 'medium' | 'large';
+export type SectionType = 'skills' | 'experience' | 'projects' | 'education' | 'summary';
 
 export interface SkillGroup {
   id: string;
@@ -42,4 +43,5 @@ export interface ResumeData {
     description: string; // Responsibilities (Rich text)
     techStack: string;
   }>;
+  sectionOrder?: SectionType[];
 }

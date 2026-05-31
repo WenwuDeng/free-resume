@@ -1,11 +1,12 @@
-import type { CSSProperties } from 'react';
-import type { ResumeData, Theme, FontSize } from '../types';
+import React, { type CSSProperties } from 'react';
+import type { ResumeData, Theme, FontSize, SectionType } from '../types';
 import { MapPin, Mail, Phone, Cake, GraduationCap } from 'lucide-react';
 
 interface Props {
   data: ResumeData;
   theme: Theme;
   fontSize: FontSize;
+  sectionOrder?: SectionType[];
 }
 
 const themeStyles: Record<
@@ -76,7 +77,18 @@ const fontSizeStyles: Record<
   },
 };
 
-export default function ResumePreview({ data, theme, fontSize }: Props) {
+const DEFAULT_PREVIEW_SECTION_ORDER: SectionType[] = ['skills', 'experience', 'projects', 'education', 'summary'];
+
+function getValidPreviewSectionOrder(order?: SectionType[]): SectionType[] {
+  if (!order || order.length === 0) return DEFAULT_PREVIEW_SECTION_ORDER;
+  const valid = order.filter(s => DEFAULT_PREVIEW_SECTION_ORDER.includes(s));
+  DEFAULT_PREVIEW_SECTION_ORDER.forEach(s => {
+    if (!valid.includes(s)) valid.push(s);
+  });
+  return valid;
+}
+
+export default function ResumePreview({ data, theme, fontSize, sectionOrder }: Props) {
   const { location, birthDate } = data.profile;
   const styles = themeStyles[theme];
   const size = fontSizeStyles[fontSize];
@@ -84,6 +96,110 @@ export default function ResumePreview({ data, theme, fontSize }: Props) {
     '--resume-font-size': size.fontSize,
     '--resume-line-height': size.lineHeight,
   } as CSSProperties;
+
+  const validOrder = getValidPreviewSectionOrder(sectionOrder);
+
+  const renderers: Record<SectionType, () => React.ReactNode> = {
+    skills: () => data.skills?.length > 0 ? (
+      <section className="mb-4 content-section">
+        <SectionTitle title="专业技能" theme={theme} />
+        <div className="pl-1 compact-section">
+          {data.skills.map((group) => (
+            <div key={group.id} className="mb-3 tight-spacing">
+              <h3 className="font-bold text-gray-900 mb-1 text-sm">{group.name}</h3>
+              <div
+                className="pl-3 text-xs leading-5 text-gray-800 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_p]:mb-0.5"
+                dangerouslySetInnerHTML={{ __html: group.content }}
+              />
+            </div>
+          ))}
+        </div>
+      </section>
+    ) : null,
+    experience: () => (
+      <section className="mb-4 content-section">
+        <SectionTitle title="工作经历" theme={theme} />
+        {data.experience.map((exp, index) => (
+          <div key={exp.id} className={`mb-4 ${index > 0 ? 'mt-6' : ''}`}>
+            <div className="flex justify-between items-baseline mb-1 font-bold text-gray-800 tight-spacing">
+              <div className="flex items-center gap-1 flex-wrap">
+                <span className="text-base">{exp.company}</span>
+                <span className="font-normal text-gray-400">-</span>
+                <span className="text-sm">{exp.title}</span>
+                {exp.location && (
+                  <div className="flex items-center gap-0.5 text-xs font-normal text-gray-600 ml-1">
+                    <MapPin size={12} />
+                    <span>{exp.location}</span>
+                  </div>
+                )}
+              </div>
+              <div className="text-xs text-gray-600 whitespace-nowrap ml-2">{exp.date}</div>
+            </div>
+            <div
+              className="text-xs leading-5 text-gray-800 pl-3 resume-body-text [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_p]:mb-0.5 [&_.ql-indent-1]:pl-6 [&_.ql-indent-2]:pl-10 [&_.ql-indent-3]:pl-14"
+              dangerouslySetInnerHTML={{ __html: exp.details }}
+            />
+          </div>
+        ))}
+      </section>
+    ),
+    projects: () => (
+      <section className="mb-4 content-section">
+        <SectionTitle title="项目经历" theme={theme} />
+        {data.projects.map((project, index) => (
+          <div key={project.id} className={`mb-4 ${index > 0 ? 'mt-4' : ''}`}>
+            <div className="flex justify-between items-baseline mb-1 font-bold text-gray-800 tight-spacing">
+              <div className="text-base">{project.name}</div>
+              <div className="text-xs text-gray-600 whitespace-nowrap ml-2">{project.date}</div>
+            </div>
+            {project.summary && (
+              <div className="mb-0.5 text-xs text-gray-800 resume-body-text">
+                <span className="font-bold text-gray-900">项目描述：</span>
+                <span>{project.summary}</span>
+              </div>
+            )}
+            {project.techStack && (
+              <div className="mb-0.5 text-xs text-gray-800 resume-body-text">
+                <span className="font-bold text-gray-900">技术架构：</span>
+                <span className="font-bold text-gray-900">{project.techStack}</span>
+              </div>
+            )}
+            <div className="mt-0.5">
+              <div className="font-bold text-gray-900 text-xs mb-0.5">职责描述：</div>
+              <div
+                className="text-xs leading-5 text-gray-800 pl-3 resume-body-text [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_p]:mb-0.5 [&_.ql-indent-1]:pl-6 [&_.ql-indent-2]:pl-10 [&_.ql-indent-3]:pl-14"
+                dangerouslySetInnerHTML={{ __html: project.description }}
+              />
+            </div>
+          </div>
+        ))}
+      </section>
+    ),
+    education: () => (
+      <section className="content-section">
+        <SectionTitle title="教育经历" theme={theme} />
+        {data.education.map((edu) => (
+          <div key={edu.id} className="flex justify-between items-center mb-1 text-gray-800 tight-spacing">
+            <div className="flex items-center gap-1 font-bold">
+              <GraduationCap size={16} className={styles.eduIcon} />
+              <span className="text-sm">{edu.school}</span>
+            </div>
+            <div className="text-sm font-medium">{edu.degree}</div>
+            <div className="text-xs text-gray-600">{edu.date}</div>
+          </div>
+        ))}
+      </section>
+    ),
+    summary: () => data.profile.summary ? (
+      <section className="mt-4 content-section">
+        <SectionTitle title="自我评价" theme={theme} />
+        <div
+          className="text-xs leading-5 text-gray-800 pl-1 resume-body-text [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_p]:mb-0.5"
+          dangerouslySetInnerHTML={{ __html: data.profile.summary }}
+        />
+      </section>
+    ) : null,
+  };
 
   return (
     <>
@@ -231,118 +347,9 @@ export default function ResumePreview({ data, theme, fontSize }: Props) {
         </div>
       </header>
 
-      {/* Skills */}
-        {data.skills && data.skills.length > 0 && (
-          <section className="mb-4 content-section">
-              <SectionTitle title="专业技能" theme={theme} />
-              <div className="pl-1 compact-section">
-                  {data.skills.map((group) => (
-                    <div key={group.id} className="mb-3 tight-spacing">
-                       {/* Category Title */}
-                       <h3 className="font-bold text-gray-900 mb-1 text-sm">{group.name}</h3>
-                       {/* List Items */}
-                       <div 
-                          className="pl-3 text-xs leading-5 text-gray-800 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_p]:mb-0.5"
-                          dangerouslySetInnerHTML={{ __html: group.content }}
-                       />
-                    </div>
-                  ))}
-              </div>
-          </section>
-        )}
-
-      {/* Experience */}
-        <section className="mb-4 content-section">
-          <SectionTitle title="工作经历" theme={theme} />
-          {data.experience.map((exp, index) => (
-            <div key={exp.id} className={`mb-4 ${index > 0 ? 'mt-6' : ''}`}>
-              <div className="flex justify-between items-baseline mb-1 font-bold text-gray-800 tight-spacing">
-                  <div className="flex items-center gap-1 flex-wrap">
-                      <span className="text-base">{exp.company}</span>
-                      <span className="font-normal text-gray-400">-</span>
-                      <span className="text-sm">{exp.title}</span>
-                      {exp.location && (
-                          <div className="flex items-center gap-0.5 text-xs font-normal text-gray-600 ml-1">
-                              <MapPin size={12} />
-                              <span>{exp.location}</span>
-                          </div>
-                      )}
-                  </div>
-                  <div className="text-xs text-gray-600 whitespace-nowrap ml-2">{exp.date}</div>
-              </div>
-              
-              <div 
-                  className="text-xs leading-5 text-gray-800 pl-3 resume-body-text [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_p]:mb-0.5 [&_.ql-indent-1]:pl-6 [&_.ql-indent-2]:pl-10 [&_.ql-indent-3]:pl-14"
-                  dangerouslySetInnerHTML={{ __html: exp.details }}
-              />
-            </div>
-          ))}
-        </section>
-
-      {/* Projects */}
-        <section className="mb-4 content-section">
-          <SectionTitle title="项目经历" theme={theme} />
-          {data.projects.map((project, index) => (
-            <div key={project.id} className={`mb-4 ${index > 0 ? 'mt-4' : ''}`}>
-              {/* Row 1: Name and Date */}
-              <div className="flex justify-between items-baseline mb-1 font-bold text-gray-800 tight-spacing">
-                <div className="text-base">{project.name}</div>
-                <div className="text-xs text-gray-600 whitespace-nowrap ml-2">{project.date}</div>
-              </div>
-              
-              {/* Row 2: Summary */}
-              {project.summary && (
-                  <div className="mb-0.5 text-xs text-gray-800 resume-body-text">
-                      <span className="font-bold text-gray-900">项目描述：</span>
-                      <span>{project.summary}</span>
-                  </div>
-              )}
-
-              {/* Row 3: Tech Stack */}
-              {project.techStack && (
-                  <div className="mb-0.5 text-xs text-gray-800 resume-body-text">
-                      <span className="font-bold text-gray-900">技术架构：</span>
-                      <span className="font-bold text-gray-900">{project.techStack}</span>
-                  </div>
-              )}
-
-              {/* Row 4: Responsibilities */}
-              <div className="mt-0.5">
-                   <div className="font-bold text-gray-900 text-xs mb-0.5">职责描述：</div>
-                   <div 
-                      className="text-xs leading-5 text-gray-800 pl-3 resume-body-text [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_p]:mb-0.5 [&_.ql-indent-1]:pl-6 [&_.ql-indent-2]:pl-10 [&_.ql-indent-3]:pl-14"
-                      dangerouslySetInnerHTML={{ __html: project.description }}
-                  />
-              </div>
-            </div>
-          ))}
-        </section>
-
-      {/* Education */}
-        <section className="content-section">
-          <SectionTitle title="教育经历" theme={theme} />
-          {data.education.map((edu) => (
-            <div key={edu.id} className="flex justify-between items-center mb-1 text-gray-800 tight-spacing">
-              <div className="flex items-center gap-1 font-bold">
-                  <GraduationCap size={16} className={styles.eduIcon} />
-                  <span className="text-sm">{edu.school}</span>
-              </div>
-              <div className="text-sm font-medium">{edu.degree}</div>
-              <div className="text-xs text-gray-600">{edu.date}</div>
-            </div>
-          ))}
-        </section>
-
-      {/* Self Evaluation */}
-        {data.profile.summary && (
-          <section className="mt-4 content-section">
-            <SectionTitle title="自我评价" theme={theme} />
-            <div 
-              className="text-xs leading-5 text-gray-800 pl-1 resume-body-text [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_p]:mb-0.5"
-              dangerouslySetInnerHTML={{ __html: data.profile.summary }} 
-            />
-          </section>
-        )}
+      {validOrder.map((key) => (
+        <React.Fragment key={key}>{renderers[key]()}</React.Fragment>
+      ))}
     </div>
     </>
   );

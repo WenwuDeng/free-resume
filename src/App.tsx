@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import ResumeEditor from './components/ResumeEditor';
 import ResumePreview from './components/ResumePreview';
-import type { ResumeData, Theme, FontSize } from './types';
+import type { ResumeData, Theme, FontSize, SectionType } from './types';
 import { PenTool, Eye, Download } from 'lucide-react';
 
 const themeConfigs: Record<
@@ -93,7 +93,8 @@ const initialData: ResumeData = {
       description: '<ul><li>设计并实现了基于 Flink 的实时计算任务，处理峰值 QPS 达 5万+。</li><li>使用 Kafka 作为消息队列，实现数据的削峰填谷。</li><li><span class="ql-indent-1">解决了数据倾斜问题，通过自定义分区器优化数据分发。</span></li><li><span class="ql-indent-1">优化状态后端存储，从 MemoryStateBackend 迁移至 RocksDB。</span></li></ul>',
       techStack: 'Flink, Kafka, MySQL, Redis',
     }
-  ]
+  ],
+  sectionOrder: ['skills', 'experience', 'projects', 'education', 'summary'],
 };
 
 function loadInitialResumeData(): ResumeData {
@@ -127,6 +128,18 @@ function App() {
       /* ignore */
     }
   }, [resumeData]);
+
+  const handleMoveSection = (section: SectionType, direction: 'up' | 'down') => {
+    const DEFAULT_ORDER: SectionType[] = ['skills', 'experience', 'projects', 'education', 'summary'];
+    const currentOrder = resumeData.sectionOrder ?? DEFAULT_ORDER;
+    const index = currentOrder.indexOf(section);
+    if (index === -1) return;
+    if ((direction === 'up' && index === 0) || (direction === 'down' && index === currentOrder.length - 1)) return;
+    const swapIndex = direction === 'up' ? index - 1 : index + 1;
+    const newOrder = [...currentOrder];
+    [newOrder[index], newOrder[swapIndex]] = [newOrder[swapIndex], newOrder[index]];
+    setResumeData({ ...resumeData, sectionOrder: newOrder });
+  };
 
   const handleExportJson = () => {
     if (typeof window === 'undefined') return;
@@ -263,7 +276,7 @@ function App() {
         {/* Editor Panel */}
         {!isPreview && (
           <div className="w-full md:w-1/2 p-6 bg-white shadow-lg overflow-y-auto print:hidden">
-            <ResumeEditor data={resumeData} onChange={setResumeData} />
+            <ResumeEditor data={resumeData} onChange={setResumeData} onSectionMove={handleMoveSection} />
           </div>
         )}
 
@@ -272,7 +285,7 @@ function App() {
             p-8 bg-gray-200 overflow-y-auto flex justify-center items-start print:w-full print:h-auto print:p-0 print:bg-white print:overflow-visible print:block print:static
             ${isPreview ? 'w-full' : 'w-full md:w-1/2'}
         `}>
-          <ResumePreview data={resumeData} theme={theme} fontSize={fontSize} />
+          <ResumePreview data={resumeData} theme={theme} fontSize={fontSize} sectionOrder={resumeData.sectionOrder} />
         </div>
       </div>
     </div>

@@ -1,10 +1,12 @@
-import type { ResumeData, SkillGroup } from '../types';
+import React from 'react';
+import type { ResumeData, SkillGroup, SectionType } from '../types';
 import { Plus, Trash2, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import RichTextEditor from './RichTextEditor';
 
 interface Props {
   data: ResumeData;
   onChange: (data: ResumeData) => void;
+  onSectionMove?: (section: SectionType, direction: 'up' | 'down') => void;
 }
 
 type ExperienceItem = ResumeData['experience'][number];
@@ -13,7 +15,60 @@ type EducationItem = ResumeData['education'][number];
 
 const generateId = () => Date.now().toString() + Math.random().toString().slice(2);
 
-export default function ResumeEditor({ data, onChange }: Props) {
+const DEFAULT_SECTION_ORDER: SectionType[] = ['skills', 'experience', 'projects', 'education', 'summary'];
+
+function getValidSectionOrder(order?: SectionType[]): SectionType[] {
+  if (!order || order.length === 0) return DEFAULT_SECTION_ORDER;
+  const valid = order.filter(s => DEFAULT_SECTION_ORDER.includes(s));
+  DEFAULT_SECTION_ORDER.forEach(s => {
+    if (!valid.includes(s)) valid.push(s);
+  });
+  return valid;
+}
+
+const SectionHeader = ({
+  section,
+  title,
+  order,
+  onMove,
+  children,
+}: {
+  section: SectionType;
+  title: string;
+  order: SectionType[];
+  onMove?: (section: SectionType, direction: 'up' | 'down') => void;
+  children?: React.ReactNode;
+}) => {
+  const index = order.indexOf(section);
+  const isFirst = index === 0;
+  const isLast = index === order.length - 1;
+  return (
+    <div className="flex justify-between items-center mb-3 border-b pb-1">
+      <div className="flex items-center gap-1.5">
+        <div className="flex flex-col">
+          <button
+            onClick={() => onMove?.(section, 'up')}
+            disabled={isFirst}
+            className="text-gray-400 hover:text-blue-600 disabled:opacity-20 leading-none"
+          >
+            <ArrowUp size={11} />
+          </button>
+          <button
+            onClick={() => onMove?.(section, 'down')}
+            disabled={isLast}
+            className="text-gray-400 hover:text-blue-600 disabled:opacity-20 leading-none"
+          >
+            <ArrowDown size={11} />
+          </button>
+        </div>
+        <h3 className="text-lg font-semibold text-blue-600">{title}</h3>
+      </div>
+      {children && <div className="flex gap-2">{children}</div>}
+    </div>
+  );
+};
+
+export default function ResumeEditor({ data, onChange, onSectionMove }: Props) {
   const handleChange = <K extends keyof ResumeData>(section: K, value: ResumeData[K]) => {
     onChange({ ...data, [section]: value });
   };
@@ -25,6 +80,8 @@ export default function ResumeEditor({ data, onChange }: Props) {
       profile: { ...data.profile, [field]: value }
     });
   };
+
+  const sectionOrder = getValidSectionOrder(data.sectionOrder);
 
   const addSkillGroup = () => {
     const newSkills = [...data.skills, { id: generateId(), name: '新技能分类', content: '' }];
@@ -82,6 +139,8 @@ export default function ResumeEditor({ data, onChange }: Props) {
   const sortExperience = () => {
      const newExp = [...data.experience].sort((a, b) => {
         const getStart = (d: string) => {
+            // "至今"/"present" 视为最新，排在最前
+            if (/至今|present/i.test(d)) return 9999 * 100 + 12;
             const match = d.match(/(\d{4})[./-](\d{1,2})/);
             if (match) return parseInt(match[1]) * 100 + parseInt(match[2]);
             return 0;
@@ -148,6 +207,123 @@ export default function ResumeEditor({ data, onChange }: Props) {
     handleChange('education', next);
   };
 
+  const renderers: Record<SectionType, () => React.ReactNode> = {
+    skills: () => (
+      <section>
+        <SectionHeader section="skills" title="专业技能" order={sectionOrder} onMove={onSectionMove}>
+          <button onClick={addSkillGroup} className="text-blue-600 hover:bg-blue-50 p-1 rounded"><Plus size={18} /></button>
+        </SectionHeader>
+        <div className="space-y-4">
+          {data.skills.map((group, index) => (
+            <div key={group.id} className="bg-gray-50 p-3 rounded border">
+              <div className="flex items-center gap-2 mb-2">
+                <button onClick={() => moveSkillGroup(index, 'up')} disabled={index === 0} className="text-gray-400 hover:text-blue-600 disabled:opacity-30"><ArrowUp size={16} /></button>
+                <button onClick={() => moveSkillGroup(index, 'down')} disabled={index === data.skills.length - 1} className="text-gray-400 hover:text-blue-600 disabled:opacity-30"><ArrowDown size={16} /></button>
+                <input className="flex-1 font-bold p-1 border rounded" value={group.name} onChange={(e) => updateSkillGroup(index, 'name', e.target.value)} placeholder="技能分类名称" />
+                <button onClick={() => deleteSkillGroup(index)} className="text-red-400 hover:text-red-600"><Trash2 size={16} /></button>
+              </div>
+              <div className="mt-2">
+                <RichTextEditor value={group.content} onChange={(val) => updateSkillGroup(index, 'content', val)} placeholder="输入技能详情..." />
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    ),
+    experience: () => (
+      <section>
+        <SectionHeader section="experience" title="工作经历" order={sectionOrder} onMove={onSectionMove}>
+          <button onClick={sortExperience} className="text-gray-600 hover:bg-gray-100 p-1 rounded text-sm flex items-center gap-1" title="按时间倒序">
+            <ArrowUpDown size={14} /> 排序
+          </button>
+          <button onClick={addExperience} className="text-blue-600 hover:bg-blue-50 p-1 rounded"><Plus size={18} /></button>
+        </SectionHeader>
+        <div className="space-y-6">
+          {data.experience.map((exp, index) => (
+            <div key={exp.id} className="bg-gray-50 p-4 rounded border relative group">
+              <div className="absolute right-2 top-2 flex gap-1 opacity-50 group-hover:opacity-100 transition-opacity">
+                <button onClick={() => moveExperience(index, 'up')} disabled={index === 0} className="p-1 hover:text-blue-600 disabled:hidden"><ArrowUp size={16} /></button>
+                <button onClick={() => moveExperience(index, 'down')} disabled={index === data.experience.length - 1} className="p-1 hover:text-blue-600 disabled:hidden"><ArrowDown size={16} /></button>
+                <button onClick={() => deleteExperience(index)} className="p-1 hover:text-red-600"><Trash2 size={16} /></button>
+              </div>
+              <div className="grid grid-cols-1 gap-3 mb-3 pr-20">
+                <input className="p-2 border rounded font-bold" value={exp.company} onChange={(e) => updateExperience(index, 'company', e.target.value)} placeholder="公司名称" />
+                <div className="flex gap-2">
+                  <input className="flex-1 p-2 border rounded" value={exp.title} onChange={(e) => updateExperience(index, 'title', e.target.value)} placeholder="职位" />
+                  <input className="w-1/4 p-2 border rounded" value={exp.location || ''} onChange={(e) => updateExperience(index, 'location', e.target.value)} placeholder="地点" />
+                  <input className="w-1/3 p-2 border rounded" value={exp.date} onChange={(e) => updateExperience(index, 'date', e.target.value)} placeholder="时间 (YYYY/MM - YYYY/MM)" />
+                </div>
+              </div>
+              <div className="mt-2">
+                <label className="text-xs text-gray-500 mb-1 block">工作详情:</label>
+                <RichTextEditor value={exp.details} onChange={(newDetails) => updateExperience(index, 'details', newDetails)} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    ),
+    projects: () => (
+      <section>
+        <SectionHeader section="projects" title="项目经历" order={sectionOrder} onMove={onSectionMove}>
+          <button onClick={addProject} className="text-blue-600 hover:bg-blue-50 p-1 rounded"><Plus size={18} /></button>
+        </SectionHeader>
+        <div className="space-y-6">
+          {data.projects.map((proj, index) => (
+            <div key={proj.id} className="bg-gray-50 p-4 rounded border relative group">
+              <div className="absolute right-2 top-2 flex gap-1 opacity-50 group-hover:opacity-100 transition-opacity">
+                <button onClick={() => moveProject(index, 'up')} disabled={index === 0} className="p-1 hover:text-blue-600 disabled:hidden"><ArrowUp size={16} /></button>
+                <button onClick={() => moveProject(index, 'down')} disabled={index === data.projects.length - 1} className="p-1 hover:text-blue-600 disabled:hidden"><ArrowDown size={16} /></button>
+                <button onClick={() => deleteProject(index)} className="p-1 hover:text-red-600"><Trash2 size={16} /></button>
+              </div>
+              <div className="grid grid-cols-1 gap-3 mb-3 pr-20">
+                <div className="flex gap-2">
+                  <input className="flex-1 p-2 border rounded font-bold" value={proj.name} onChange={(e) => updateProject(index, 'name', e.target.value)} placeholder="项目名称" />
+                  <input className="w-1/3 p-2 border rounded" value={proj.date} onChange={(e) => updateProject(index, 'date', e.target.value)} placeholder="项目时间" />
+                </div>
+                <input className="p-2 border rounded text-sm" value={proj.techStack} onChange={(e) => updateProject(index, 'techStack', e.target.value)} placeholder="技术栈" />
+                <textarea className="p-2 border rounded text-sm h-20 resize-y" value={proj.summary} onChange={(e) => updateProject(index, 'summary', e.target.value)} placeholder="项目描述 (简短概括)" />
+              </div>
+              <div className="mt-2">
+                <label className="text-xs text-gray-500 mb-1 block">职责描述:</label>
+                <RichTextEditor value={proj.description} onChange={(val) => updateProject(index, 'description', val)} placeholder="输入职责描述..." />
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    ),
+    education: () => (
+      <section>
+        <SectionHeader section="education" title="教育经历" order={sectionOrder} onMove={onSectionMove}>
+          <button onClick={addEducation} className="text-blue-600 hover:bg-blue-50 p-1 rounded"><Plus size={18} /></button>
+        </SectionHeader>
+        <div className="space-y-4">
+          {data.education.map((edu, index) => (
+            <div key={edu.id} className="bg-gray-50 p-3 rounded border">
+              <div className="flex items-center gap-2 mb-2">
+                <button onClick={() => moveEducation(index, 'up')} disabled={index === 0} className="text-gray-400 hover:text-blue-600 disabled:opacity-30"><ArrowUp size={16} /></button>
+                <button onClick={() => moveEducation(index, 'down')} disabled={index === data.education.length - 1} className="text-gray-400 hover:text-blue-600 disabled:opacity-30"><ArrowDown size={16} /></button>
+                <input className="flex-1 p-1 border rounded font-bold" value={edu.school} onChange={(e) => updateEducation(index, 'school', e.target.value)} placeholder="学校名称" />
+                <button onClick={() => deleteEducation(index)} className="text-red-400 hover:text-red-600"><Trash2 size={16} /></button>
+              </div>
+              <div className="flex gap-2">
+                <input className="flex-1 p-1 border rounded text-sm" value={edu.degree} onChange={(e) => updateEducation(index, 'degree', e.target.value)} placeholder="专业与学历" />
+                <input className="w-1/3 p-1 border rounded text-sm" value={edu.date} onChange={(e) => updateEducation(index, 'date', e.target.value)} placeholder="时间" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    ),
+    summary: () => (
+      <section>
+        <SectionHeader section="summary" title="自我评价" order={sectionOrder} onMove={onSectionMove} />
+        <RichTextEditor value={data.profile.summary} onChange={(val) => handleProfileChange('summary', val)} placeholder="请输入自我评价..." />
+      </section>
+    ),
+  };
+
   return (
     <div className="space-y-8 pb-20">
       {/* Profile Section */}
@@ -167,191 +343,9 @@ export default function ResumeEditor({ data, onChange }: Props) {
         </div>
       </section>
 
-      {/* Skills Section */}
-      <section>
-        <div className="flex justify-between items-center mb-3 border-b pb-1">
-            <h3 className="text-lg font-semibold text-blue-600">专业技能</h3>
-            <button onClick={addSkillGroup} className="text-blue-600 hover:bg-blue-50 p-1 rounded"><Plus size={18} /></button>
-        </div>
-        <div className="space-y-4">
-            {data.skills.map((group, index) => (
-                <div key={group.id} className="bg-gray-50 p-3 rounded border">
-                    <div className="flex items-center gap-2 mb-2">
-                        <button onClick={() => moveSkillGroup(index, 'up')} disabled={index === 0} className="text-gray-400 hover:text-blue-600 disabled:opacity-30"><ArrowUp size={16} /></button>
-                        <button onClick={() => moveSkillGroup(index, 'down')} disabled={index === data.skills.length - 1} className="text-gray-400 hover:text-blue-600 disabled:opacity-30"><ArrowDown size={16} /></button>
-                        <input 
-                            className="flex-1 font-bold p-1 border rounded" 
-                            value={group.name} 
-                            onChange={(e) => updateSkillGroup(index, 'name', e.target.value)}
-                            placeholder="技能分类名称"
-                        />
-                        <button onClick={() => deleteSkillGroup(index)} className="text-red-400 hover:text-red-600"><Trash2 size={16} /></button>
-                    </div>
-                    {/* Content Logic */}
-                    <div className="mt-2">
-                        <RichTextEditor 
-                            value={group.content} 
-                            onChange={(val) => updateSkillGroup(index, 'content', val)}
-                            placeholder="输入技能详情..."
-                        />
-                    </div>
-                </div>
-            ))}
-        </div>
-      </section>
-
-      {/* Experience Section */}
-      <section>
-        <div className="flex justify-between items-center mb-3 border-b pb-1">
-            <h3 className="text-lg font-semibold text-blue-600">工作经历</h3>
-            <div className="flex gap-2">
-                <button onClick={sortExperience} className="text-gray-600 hover:bg-gray-100 p-1 rounded text-sm flex items-center gap-1" title="按时间倒序">
-                    <ArrowUpDown size={14} /> 排序
-                </button>
-                <button onClick={addExperience} className="text-blue-600 hover:bg-blue-50 p-1 rounded"><Plus size={18} /></button>
-            </div>
-        </div>
-        <div className="space-y-6">
-            {data.experience.map((exp, index) => (
-                <div key={exp.id} className="bg-gray-50 p-4 rounded border relative group">
-                    <div className="absolute right-2 top-2 flex gap-1 opacity-50 group-hover:opacity-100 transition-opacity">
-                         <button onClick={() => moveExperience(index, 'up')} disabled={index === 0} className="p-1 hover:text-blue-600 disabled:hidden"><ArrowUp size={16} /></button>
-                         <button onClick={() => moveExperience(index, 'down')} disabled={index === data.experience.length - 1} className="p-1 hover:text-blue-600 disabled:hidden"><ArrowDown size={16} /></button>
-                         <button onClick={() => deleteExperience(index)} className="p-1 hover:text-red-600"><Trash2 size={16} /></button>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-3 mb-3 pr-20">
-                        <input className="p-2 border rounded font-bold" value={exp.company} onChange={(e) => updateExperience(index, 'company', e.target.value)} placeholder="公司名称" />
-                        <div className="flex gap-2">
-                            <input className="flex-1 p-2 border rounded" value={exp.title} onChange={(e) => updateExperience(index, 'title', e.target.value)} placeholder="职位" />
-                            <input className="w-1/4 p-2 border rounded" value={exp.location || ''} onChange={(e) => updateExperience(index, 'location', e.target.value)} placeholder="地点" />
-                            <input className="w-1/3 p-2 border rounded" value={exp.date} onChange={(e) => updateExperience(index, 'date', e.target.value)} placeholder="时间 (YYYY/MM - YYYY/MM)" />
-                        </div>
-                    </div>
-                    
-                    <div className="mt-2">
-                        <label className="text-xs text-gray-500 mb-1 block">工作详情:</label>
-                        <RichTextEditor 
-                            value={exp.details} 
-                            onChange={(newDetails) => updateExperience(index, 'details', newDetails)} 
-                        />
-                    </div>
-                </div>
-            ))}
-        </div>
-      </section>
-
-      {/* Projects Section */}
-      <section>
-        <div className="flex justify-between items-center mb-3 border-b pb-1">
-            <h3 className="text-lg font-semibold text-blue-600">项目经历</h3>
-            <div className="flex gap-2">
-                <button onClick={addProject} className="text-blue-600 hover:bg-blue-50 p-1 rounded"><Plus size={18} /></button>
-            </div>
-        </div>
-        <div className="space-y-6">
-             {data.projects.map((proj, index) => (
-                <div key={proj.id} className="bg-gray-50 p-4 rounded border relative group">
-                    <div className="absolute right-2 top-2 flex gap-1 opacity-50 group-hover:opacity-100 transition-opacity">
-                         <button onClick={() => moveProject(index, 'up')} disabled={index === 0} className="p-1 hover:text-blue-600 disabled:hidden"><ArrowUp size={16} /></button>
-                         <button onClick={() => moveProject(index, 'down')} disabled={index === data.projects.length - 1} className="p-1 hover:text-blue-600 disabled:hidden"><ArrowDown size={16} /></button>
-                         <button onClick={() => deleteProject(index)} className="p-1 hover:text-red-600"><Trash2 size={16} /></button>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-3 mb-3 pr-20">
-                        <div className="flex gap-2">
-                            <input className="flex-1 p-2 border rounded font-bold" value={proj.name} onChange={(e) => updateProject(index, 'name', e.target.value)} placeholder="项目名称" />
-                            <input className="w-1/3 p-2 border rounded" value={proj.date} onChange={(e) => updateProject(index, 'date', e.target.value)} placeholder="项目时间" />
-                        </div>
-                        <input className="p-2 border rounded text-sm" value={proj.techStack} onChange={(e) => updateProject(index, 'techStack', e.target.value)} placeholder="技术栈" />
-                        <textarea 
-                            className="p-2 border rounded text-sm h-20 resize-y" 
-                            value={proj.summary} 
-                            onChange={(e) => updateProject(index, 'summary', e.target.value)} 
-                            placeholder="项目描述 (简短概括)" 
-                        />
-                    </div>
-                    
-                    <div className="mt-2">
-                        <label className="text-xs text-gray-500 mb-1 block">职责描述:</label>
-                        <RichTextEditor
-                            value={proj.description}
-                            onChange={(val) => updateProject(index, 'description', val)}
-                            placeholder="输入职责描述..."
-                        />
-                    </div>
-                </div>
-            ))}
-        </div>
-      </section>
-
-      {/* Education Section */}
-      <section>
-        <div className="flex justify-between items-center mb-3 border-b pb-1">
-          <h3 className="text-lg font-semibold text-blue-600">教育经历</h3>
-          <button onClick={addEducation} className="text-blue-600 hover:bg-blue-50 p-1 rounded">
-            <Plus size={18} />
-          </button>
-        </div>
-        <div className="space-y-4">
-          {data.education.map((edu, index) => (
-            <div key={edu.id} className="bg-gray-50 p-3 rounded border">
-              <div className="flex items-center gap-2 mb-2">
-                <button
-                  onClick={() => moveEducation(index, 'up')}
-                  disabled={index === 0}
-                  className="text-gray-400 hover:text-blue-600 disabled:opacity-30"
-                >
-                  <ArrowUp size={16} />
-                </button>
-                <button
-                  onClick={() => moveEducation(index, 'down')}
-                  disabled={index === data.education.length - 1}
-                  className="text-gray-400 hover:text-blue-600 disabled:opacity-30"
-                >
-                  <ArrowDown size={16} />
-                </button>
-                <input
-                  className="flex-1 p-1 border rounded font-bold"
-                  value={edu.school}
-                  onChange={(e) => updateEducation(index, 'school', e.target.value)}
-                  placeholder="学校名称"
-                />
-                <button
-                  onClick={() => deleteEducation(index)}
-                  className="text-red-400 hover:text-red-600"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-              <div className="flex gap-2">
-                <input
-                  className="flex-1 p-1 border rounded text-sm"
-                  value={edu.degree}
-                  onChange={(e) => updateEducation(index, 'degree', e.target.value)}
-                  placeholder="专业与学历"
-                />
-                <input
-                  className="w-1/3 p-1 border rounded text-sm"
-                  value={edu.date}
-                  onChange={(e) => updateEducation(index, 'date', e.target.value)}
-                  placeholder="时间"
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Self Evaluation Section */}
-      <section>
-        <h3 className="text-lg font-semibold mb-3 text-blue-600 border-b pb-1">自我评价</h3>
-        <RichTextEditor 
-          value={data.profile.summary} 
-          onChange={(val) => handleProfileChange('summary', val)}
-          placeholder="请输入自我评价..."
-        />
-      </section>
+      {sectionOrder.map((key) => (
+        <React.Fragment key={key}>{renderers[key]()}</React.Fragment>
+      ))}
     </div>
   );
 }
